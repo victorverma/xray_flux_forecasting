@@ -1,0 +1,12 @@
+[submodule "density_ratio_estimation"]
+	path = density_ratio_estimation
+	url = https://github.com/victorverma/density_ratio_estimation.git
+[submodule "harp_data"]
+	path = harp_data
+	url = https://github.com/victorverma/harp_data.git
+[submodule "tscv"]
+	path = tscv
+	url = https://github.com/victorverma/tscv.git
+[submodule "xray_fluxes"]
+	path = xray_fluxes
+	url = https://github.com/victorverma/xray_fluxes.git
