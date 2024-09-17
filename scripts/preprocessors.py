@@ -85,7 +85,7 @@ class IdentityPreprocessor(Preprocessor):
         pass
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        return x, y >= self.y_threshold
+        return x, Preprocessor._binarize(y, self.y_threshold)
 
 class StandardizePreprocessor(Preprocessor):
     def __init__(self, y_threshold: float) -> None:
@@ -96,4 +96,4 @@ class StandardizePreprocessor(Preprocessor):
         self.sds = np.std(x, axis=0)
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        return (x - self.means) / self.sds, y >= self.y_threshold
+        return (x - self.means) / self.sds, Preprocessor._binarize(y, self.y_threshold)
