@@ -45,3 +45,14 @@ class IdentityPreprocessor(Preprocessor):
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         return x, y >= self.y_threshold
+
+class StandardizePreprocessor(Preprocessor):
+    def __init__(self, y_threshold: float) -> None:
+        self.y_threshold = y_threshold
+
+    def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        self.means = np.mean(x, axis=0)
+        self.sds = np.std(x, axis=0)
+
+    def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        return (x - self.means) / self.sds, y >= self.y_threshold
