@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import final, Tuple
 import numpy as np
 
 class Preprocessor(ABC):
@@ -36,6 +36,29 @@ class Preprocessor(ABC):
         """
         self.fit(x, y)
         return self.transform(x, y)
+
+    @final
+    def _embed(x: np.ndarray, d: int) -> np.ndarray:
+        """
+        Concatenate consecutive rows of an array. This mimics the functionality of stats::embed() in R.
+
+        :param x: NumPy array of shape (n, p).
+        :param d: Integer equal to the number of consecutive rows to concatenate.
+        :return: NumPy array of shape (n - d + 1, d * p) containing the concatenated rows.
+        """
+        if not isinstance(x, np.ndarray):
+            raise TypeError("x must be a NumPy array")
+        if x.ndim != 2:
+            raise TypeError("x must be 2D")
+        if not isinstance(d, int):
+            raise TypeError("d must be an integer")
+        n, p = x.shape
+        if d < 1 or d > n:
+            raise ValueError("d must be between one and the number of rows in x")
+        x_ = np.zeros((n - d + 1, d * p))
+        for i in range(n - d + 1):
+            x_[i] = x[i:(i + d)][::-1].flatten()
+        return x_
 
 class IdentityPreprocessor(Preprocessor):
     def __init__(self, y_threshold: float) -> None:
