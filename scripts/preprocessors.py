@@ -60,6 +60,23 @@ class Preprocessor(ABC):
             x_[i] = x[i:(i + d)][::-1].flatten()
         return x_
 
+    @final
+    def _binarize(y: np.ndarray, y_threshold: float) -> np.ndarray:
+        """
+        Flag values in an array that are at or above a threshold.
+
+        :param y: NumPy array of shape (n,).
+        :param y_threshold: Float.
+        :return: NumPy array of shape (n,) containing the flags.
+        """
+        if not isinstance(y, np.ndarray):
+            raise TypeError("y must be a NumPy array")
+        if y.ndim != 1:
+            raise TypeError("y must be 1D")
+        if not isinstance(y_threshold, float):
+            raise TypeError("y_threshold must be a float")
+        return y >= y_threshold
+
 class IdentityPreprocessor(Preprocessor):
     def __init__(self, y_threshold: float) -> None:
         self.y_threshold = y_threshold
