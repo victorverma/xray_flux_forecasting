@@ -96,22 +96,24 @@ class Preprocessor(ABC):
         return y >= np.quantile(y, p, method="inverted_cdf")
 
 class IdentityPreprocessor(Preprocessor):
-    def __init__(self, y_threshold: float) -> None:
+    def __init__(self, y_threshold: float = None, p: float = None) -> None:
         self.y_threshold = y_threshold
+        self.p = p
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
         pass
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        return x, Preprocessor._binarize(y, self.y_threshold)
+        return x, Preprocessor._binarize(y, self.y_threshold, self.p)
 
 class StandardizePreprocessor(Preprocessor):
-    def __init__(self, y_threshold: float) -> None:
+    def __init__(self, y_threshold: float = None, p: float = None) -> None:
         self.y_threshold = y_threshold
+        self.p = p
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
         self.means = np.mean(x, axis=0)
         self.sds = np.std(x, axis=0)
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        return (x - self.means) / self.sds, Preprocessor._binarize(y, self.y_threshold)
+        return (x - self.means) / self.sds, Preprocessor._binarize(y, self.y_threshold, self.p)
