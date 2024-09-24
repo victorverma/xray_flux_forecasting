@@ -39,26 +39,26 @@ class Preprocessor(ABC):
         return self.transform(x, y)
 
     @final
-    def _embed(x: np.ndarray, d: int) -> np.ndarray:
+    def _embed(x: np.ndarray, r: int) -> np.ndarray:
         """
         Concatenate consecutive rows of an array. This mimics the functionality of stats::embed() in R.
 
-        :param x: NumPy array of shape (n, p).
-        :param d: Integer equal to the number of consecutive rows to concatenate.
-        :return: NumPy array of shape (n - d + 1, d * p) containing the concatenated rows.
+        :param x: NumPy array of shape (n, d).
+        :param r: Integer equal to the number of consecutive rows to concatenate.
+        :return: NumPy array of shape (n - r + 1, r * d) containing the concatenated rows.
         """
         if not isinstance(x, np.ndarray):
             raise TypeError("x must be a NumPy array")
         if x.ndim != 2:
             raise TypeError("x must be 2D")
-        if not isinstance(d, int):
-            raise TypeError("d must be an integer")
-        n, p = x.shape
-        if d < 1 or d > n:
-            raise ValueError("d must be between one and the number of rows in x")
-        x_ = np.zeros((n - d + 1, d * p))
-        for i in range(n - d + 1):
-            x_[i] = x[i:(i + d)][::-1].flatten()
+        if not isinstance(r, int):
+            raise TypeError("r must be an integer")
+        n, d = x.shape
+        if r < 1 or r > n:
+            raise ValueError("r must be between one and the number of rows in x")
+        x_ = np.zeros((n - r + 1, r * d))
+        for i in range(n - r + 1):
+            x_[i] = x[i:(i + r)][::-1].flatten()
         return x_
 
     @final
