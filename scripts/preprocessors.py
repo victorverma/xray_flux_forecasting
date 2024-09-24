@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import final, Tuple
 import numpy as np
+import warnings
 
 class Preprocessor(ABC):
     """Abstract base class for preprocessors."""
@@ -61,21 +62,38 @@ class Preprocessor(ABC):
         return x_
 
     @final
-    def _binarize(y: np.ndarray, threshold: float) -> np.ndarray:
+    def _binarize(y: np.ndarray, threshold: float = None, p: float = None) -> np.ndarray:
         """
         Flag values in an array that are at or above a threshold.
 
+        Specify either `threshold` or `p`, but not both. If both are specified,
+        `threshold` will be used and a warning will be issued.
+
         :param y: NumPy array of shape (n,).
-        :param threshold: Float.
+        :param threshold: Float giving the threshold explicitly.
+        :param p: Float giving the quantile level of the threshold; must be in (0, 1).
         :return: NumPy array of shape (n,) containing the flags.
         """
         if not isinstance(y, np.ndarray):
             raise TypeError("y must be a NumPy array")
         if y.ndim != 1:
             raise TypeError("y must be 1D")
-        if not isinstance(threshold, float):
-            raise TypeError("y_threshold must be a float")
-        return y >= threshold
+
+        if threshold is not None and p is not None:
+            warnings.warn("both threshold and p were specified, using threshold")
+        if threshold is None and p is None:
+            raise ValueError("must specify either threshold or p")
+
+        if threshold is not None:
+            if not isinstance(threshold, float):
+                raise TypeError("threshold must be a float")
+            return y >= threshold
+
+        if not isinstance(p, float):
+            raise TypeError("p must be a float")
+        if p <= 0 or p >= 1:
+            raise ValueError("p must be in (0, 1)")
+        return y >= np.quantile(y, p, method="inverted_cdf")
 
 class IdentityPreprocessor(Preprocessor):
     def __init__(self, y_threshold: float) -> None:
