@@ -39,14 +39,13 @@ class Preprocessor(ABC):
         return self.transform(x, y)
 
     @final
-    def _validate(r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
+    def _validate_init_params(r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
         """
-        Validate parameters of other internal methods. See the docstrings of those
-        methods for detailed descriptions of the parameters.
+        Validate parameters that all subclasses should use for initialization.
 
-        :param r: Integer; parameter of `_embed`.
-        :param y_threshold: Float; parameter of `_binarize`.
-        :param p: Float; parameter of `_binarize`.
+        :param r: Integer giving the number of consecutive covariate vectors to concatenate.
+        :param y_threshold: Float giving an explicit threshold that defines extremeness.
+        :param p: Float giving the quantile level of the threshold that defines extremeness.
         :raises TypeError: If any parameter is of the wrong type.
         :raises ValueError: If `r` is not positive or if `p` is not in (0, 1).
         """
@@ -94,17 +93,12 @@ class Preprocessor(ABC):
         return x_
 
     @final
-    def _binarize(y: np.ndarray, y_threshold: Optional[float] = None, p: Optional[float] = None) -> np.ndarray:
+    def _binarize(y: np.ndarray, y_threshold: float) -> np.ndarray:
         """
         Flag values in an array that are at or above a threshold.
 
-        Specify either `y_threshold` or `p`, but not both. If both are specified,
-        `y_threshold` will be used. `y_threshold` and `p` are assumed to have been validated
-        using `_validate`.
-
         :param y: NumPy array of shape (n,).
-        :param y_threshold: Float giving the threshold explicitly.
-        :param p: Float giving the quantile level of the threshold; must be in (0, 1).
+        :param y_threshold: Float giving the threshold; is assumed to have been validated using `_validate`.
         :return: NumPy array of shape (n,) containing the flags.
         """
         if not isinstance(y, np.ndarray):
@@ -112,34 +106,34 @@ class Preprocessor(ABC):
         if y.ndim != 1:
             raise TypeError("y must be 1D")
 
-        if y_threshold is not None:
-            return y >= y_threshold
-        else:
-            return y >= np.quantile(y, p, method="inverted_cdf")
+        return y >= y_threshold
 
 class IdentityPreprocessor(Preprocessor):
     def __init__(self, r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
-        Preprocessor._validate(r, y_threshold, p)
+        Preprocessor._validate_init_params(r, y_threshold, p)
         self.r = r
         self.y_threshold = y_threshold
         self.p = p
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
-        pass
+        if self.y_threshold is None:
+            self.y_threshold = np.quantile(y, self.p, method="inverted_cdf")
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold, self.p)
+        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold)
 
 class StandardizePreprocessor(Preprocessor):
     def __init__(self, r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
-        Preprocessor._validate(r, y_threshold, p)
+        Preprocessor._validate_init_params(r, y_threshold, p)
         self.y_threshold = y_threshold
         self.p = p
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        if self.y_threshold is None:
+            self.y_threshold = np.quantile(y, self.p, method="inverted_cdf")
         self.means = np.mean(x, axis=0)
         self.sds = np.std(x, axis=0)
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         x = (x - self.means) / self.sds
-        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold, self.p)
+        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold)
