@@ -34,3 +34,19 @@ class KNNModel(Model):
     def predict(self, x: np.ndarray) -> np.ndarray:
         ratio_hat = self.density_ratio_estimator.predict(x)
         return ratio_hat >= self.pred_threshold
+
+class KNN2Model(Model):
+    def __init__(self, k: int, p: float) -> None:
+        self.density_ratio_estimator = dre.KNN2DensityRatioEstimator(k)
+        self.p = p
+
+    def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        x_numer = x[y]
+        x_denom = x[~y]
+        self.density_ratio_estimator.fit(x_numer, x_denom)
+        preds = self.density_ratio_estimator.predict(x)
+        self.pred_threshold = np.quantile(preds, self.p, method="inverted_cdf")
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        preds = self.density_ratio_estimator.predict(x)
+        return preds >= self.pred_threshold
