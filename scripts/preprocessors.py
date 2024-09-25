@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import final, Tuple
+from typing import final, Optional, Tuple
 import numpy as np
 import warnings
 
@@ -39,39 +39,22 @@ class Preprocessor(ABC):
         return self.transform(x, y)
 
     @final
-    def _embed(x: np.ndarray, r: int) -> np.ndarray:
+    def _validate(r: int, threshold: Optional[float] = None, p: Optional[float] = None) -> None:
         """
-        Concatenate consecutive rows of an array. This mimics the functionality of stats::embed() in R.
+        Validate parameters of other internal methods. See the docstrings of those
+        methods for detailed descriptions of the parameters.
 
-        :param x: NumPy array of shape (n, d).
-        :param r: Integer equal to the number of consecutive rows to concatenate.
-        :return: NumPy array of shape (n - r + 1, r * d) containing the concatenated rows.
+        :param r: Integer; parameter of `_embed`.
+        :param threshold: Float; parameter of `_binarize`.
+        :param p: Float; parameter of `_binarize`.
+        :raises TypeError: If any parameter is of the wrong type.
+        :raises ValueError: If `r` is not positive or if `p` is not in (0, 1).
         """
-        if not isinstance(x, np.ndarray):
-            raise TypeError("x must be a NumPy array")
-        if x.ndim != 2:
-            raise TypeError("x must be 2D")
         if not isinstance(r, int):
             raise TypeError("r must be an integer")
-        n, d = x.shape
-        if r < 1 or r > n:
-            raise ValueError("r must be between one and the number of rows in x")
-        x_ = np.zeros((n - r + 1, r * d))
-        for i in range(n - r + 1):
-            x_[i] = x[i:(i + r)][::-1].flatten()
-        return x_
+        if r <= 0:
+            raise ValueError("r must be positive")
 
-    @final
-    def _validate(threshold: float = None, p: float = None) -> None:
-        """
-        Check whether the threshold defining extremeness or its quantile level are valid.
-
-        Specify either `threshold` or `p`, but not both. If both are specified,
-        `threshold` will be used.
-
-        :param threshold: Float giving the threshold explicitly.
-        :param p: Float giving the quantile level of the threshold; must be in (0, 1).
-        """
         if threshold is not None and p is not None:
             warnings.warn("both threshold and p were specified, using threshold")
         if threshold is None and p is None:
@@ -87,7 +70,28 @@ class Preprocessor(ABC):
                 raise ValueError("p must be in (0, 1)")
 
     @final
-    def _binarize(y: np.ndarray, threshold: float = None, p: float = None) -> np.ndarray:
+    def _embed(x: np.ndarray, r: int) -> np.ndarray:
+        """
+        Concatenate consecutive rows of an array. This mimics the functionality of stats::embed() in R.
+
+        :param x: NumPy array of shape (n, d).
+        :param r: Integer equal to the number of consecutive rows to concatenate.
+        :return: NumPy array of shape (n - r + 1, r * d) containing the concatenated rows.
+        """
+        if not isinstance(x, np.ndarray):
+            raise TypeError("x must be a NumPy array")
+        if x.ndim != 2:
+            raise TypeError("x must be 2D")
+        n, d = x.shape
+        if n < r:
+            raise ValueError("the number of rows in x must be at least r")
+        x_ = np.zeros((n - r + 1, r * d))
+        for i in range(n - r + 1):
+            x_[i] = x[i:(i + r)][::-1].flatten()
+        return x_
+
+    @final
+    def _binarize(y: np.ndarray, threshold: Optional[float] = None, p: Optional[float] = None) -> np.ndarray:
         """
         Flag values in an array that are at or above a threshold.
 
@@ -111,8 +115,9 @@ class Preprocessor(ABC):
             return y >= np.quantile(y, p, method="inverted_cdf")
 
 class IdentityPreprocessor(Preprocessor):
-    def __init__(self, y_threshold: float = None, p: float = None) -> None:
-        Preprocessor._validate(y_threshold, p)
+    def __init__(self, r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
+        Preprocessor._validate(r, y_threshold, p)
+        self.r = r
         self.y_threshold = y_threshold
         self.p = p
 
@@ -120,11 +125,11 @@ class IdentityPreprocessor(Preprocessor):
         pass
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        return x, Preprocessor._binarize(y, self.y_threshold, self.p)
+        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold, self.p)
 
 class StandardizePreprocessor(Preprocessor):
-    def __init__(self, y_threshold: float = None, p: float = None) -> None:
-        Preprocessor._validate(y_threshold, p)
+    def __init__(self, r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
+        Preprocessor._validate(r, y_threshold, p)
         self.y_threshold = y_threshold
         self.p = p
 
@@ -133,4 +138,5 @@ class StandardizePreprocessor(Preprocessor):
         self.sds = np.std(x, axis=0)
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        return (x - self.means) / self.sds, Preprocessor._binarize(y, self.y_threshold, self.p)
+        x = (x - self.means) / self.sds
+        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold, self.p)
