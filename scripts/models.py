@@ -20,18 +20,17 @@ class Model(ABC):
         pass
 
 class KNNModel(Model):
-    def __init__(self, y_threshold: float, k: int) -> None:
-        self.y_threshold = y_threshold
-        self.density_ratio_estimator = dre.KNNDensityRatioEstimator(k=k)
+    def __init__(self, k_numer: int, k_denom: int, p: float) -> None:
+        self.density_ratio_estimator = dre.KNNDensityRatioEstimator(k_numer, k_denom)
+        self.p = p
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
-        x_numer = x[y >= self.y_threshold]
-        x_denom = x[y < self.y_threshold]
+        x_numer = x[y]
+        x_denom = x[~y]
         self.density_ratio_estimator.fit(x_numer, x_denom)
-        y_pred = self.density_ratio_estimator.predict(x)
-        p = np.mean(y <= self.y_threshold)
-        self.y_pred_threshold = np.quantile(y_pred, p)
+        ratio_hat = self.density_ratio_estimator.predict(x)
+        self.pred_threshold = np.quantile(ratio_hat, self.p, method="inverted_cdf")
 
     def predict(self, x: np.ndarray) -> np.ndarray:
-        y_pred = self.density_ratio_estimator.predict(x)
-        return y_pred >= self.y_pred_threshold
+        ratio_hat = self.density_ratio_estimator.predict(x)
+        return ratio_hat >= self.pred_threshold
