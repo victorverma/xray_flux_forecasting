@@ -125,6 +125,7 @@ class IdentityPreprocessor(Preprocessor):
 class StandardizePreprocessor(Preprocessor):
     def __init__(self, r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
         Preprocessor._validate_init_params(r, y_threshold, p)
+        self.r = r
         self.y_threshold = y_threshold
         self.p = p
 
