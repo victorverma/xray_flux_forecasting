@@ -109,7 +109,7 @@ class Preprocessor(ABC):
         return y >= y_threshold
 
 class IdentityPreprocessor(Preprocessor):
-    def __init__(self, r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
+    def __init__(self, r: int = 1, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
         Preprocessor._validate_init_params(r, y_threshold, p)
         self.r = r
         self.y_threshold = y_threshold
@@ -123,7 +123,7 @@ class IdentityPreprocessor(Preprocessor):
         return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold)
 
 class StandardizePreprocessor(Preprocessor):
-    def __init__(self, r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
+    def __init__(self, r: int = 1, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
         Preprocessor._validate_init_params(r, y_threshold, p)
         self.r = r
         self.y_threshold = y_threshold
