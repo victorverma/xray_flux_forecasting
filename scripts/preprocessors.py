@@ -85,6 +85,9 @@ class Preprocessor(ABC):
         n, d = x.shape
         if n < r:
             raise ValueError("the number of rows in x must be at least r")
+
+        if r == 1:
+            return x
         x_ = np.zeros((n - r + 1, r * d))
         for i in range(n - r + 1):
             x_[i] = x[i:(i + r)][::-1].flatten()
