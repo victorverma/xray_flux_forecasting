@@ -39,13 +39,13 @@ class Preprocessor(ABC):
         return self.transform(x, y)
 
     @final
-    def _validate(r: int, threshold: Optional[float] = None, p: Optional[float] = None) -> None:
+    def _validate(r: int, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
         """
         Validate parameters of other internal methods. See the docstrings of those
         methods for detailed descriptions of the parameters.
 
         :param r: Integer; parameter of `_embed`.
-        :param threshold: Float; parameter of `_binarize`.
+        :param y_threshold: Float; parameter of `_binarize`.
         :param p: Float; parameter of `_binarize`.
         :raises TypeError: If any parameter is of the wrong type.
         :raises ValueError: If `r` is not positive or if `p` is not in (0, 1).
@@ -55,14 +55,14 @@ class Preprocessor(ABC):
         if r <= 0:
             raise ValueError("r must be positive")
 
-        if threshold is not None and p is not None:
-            warnings.warn("both threshold and p were specified, using threshold")
-        if threshold is None and p is None:
-            raise ValueError("must specify either threshold or p")
+        if y_threshold is not None and p is not None:
+            warnings.warn("both y_threshold and p were specified, using y_threshold")
+        if y_threshold is None and p is None:
+            raise ValueError("must specify either y_threshold or p")
 
-        if threshold is not None:
-            if not isinstance(threshold, float):
-                raise TypeError("threshold must be a float")
+        if y_threshold is not None:
+            if not isinstance(y_threshold, float):
+                raise TypeError("y_threshold must be a float")
         else:
             if not isinstance(p, float):
                 raise TypeError("p must be a float")
@@ -91,16 +91,16 @@ class Preprocessor(ABC):
         return x_
 
     @final
-    def _binarize(y: np.ndarray, threshold: Optional[float] = None, p: Optional[float] = None) -> np.ndarray:
+    def _binarize(y: np.ndarray, y_threshold: Optional[float] = None, p: Optional[float] = None) -> np.ndarray:
         """
         Flag values in an array that are at or above a threshold.
 
-        Specify either `threshold` or `p`, but not both. If both are specified,
-        `threshold` will be used. `threshold` and `p` are assumed to have been validated
+        Specify either `y_threshold` or `p`, but not both. If both are specified,
+        `y_threshold` will be used. `y_threshold` and `p` are assumed to have been validated
         using `_validate`.
 
         :param y: NumPy array of shape (n,).
-        :param threshold: Float giving the threshold explicitly.
+        :param y_threshold: Float giving the threshold explicitly.
         :param p: Float giving the quantile level of the threshold; must be in (0, 1).
         :return: NumPy array of shape (n,) containing the flags.
         """
@@ -109,8 +109,8 @@ class Preprocessor(ABC):
         if y.ndim != 1:
             raise TypeError("y must be 1D")
 
-        if threshold is not None:
-            return y >= threshold
+        if y_threshold is not None:
+            return y >= y_threshold
         else:
             return y >= np.quantile(y, p, method="inverted_cdf")
 
