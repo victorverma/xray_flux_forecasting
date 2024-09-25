@@ -69,18 +69,33 @@ class Preprocessor(ABC):
                 raise ValueError("p must be in (0, 1)")
 
     @final
-    def _embed(x: np.ndarray, r: int) -> np.ndarray:
+    def _validate_arrays(x: np.ndarray, y: np.ndarray) -> None:
         """
-        Concatenate consecutive rows of an array. This mimics the functionality of stats::embed() in R.
+        Validate arrays passed into `fit` and `transform`.
 
-        :param x: NumPy array of shape (n, d).
-        :param r: Integer equal to the number of consecutive rows to concatenate.
-        :return: NumPy array of shape (n - r + 1, r * d) containing the concatenated rows.
+        :param x: NumPy array of shape (n, d) whose rows are covariate vectors.
+        :param y: NumPy array of shape (n,) whose entries are response values.
         """
         if not isinstance(x, np.ndarray):
             raise TypeError("x must be a NumPy array")
         if x.ndim != 2:
             raise TypeError("x must be 2D")
+        if not isinstance(y, np.ndarray):
+            raise TypeError("y must be a NumPy array")
+        if y.ndim != 1:
+            raise TypeError("y must be 1D")
+        if x.shape[0] != y.size:
+            raise ValueError("number of rows in x must equal length of y")
+
+    @final
+    def _embed(x: np.ndarray, r: int) -> np.ndarray:
+        """
+        Concatenate consecutive rows of an array. This mimics the functionality of stats::embed() in R.
+
+        :param x: NumPy array of shape (n, d); is assumed to have been validated using `_validate_arrays`.
+        :param r: Integer equal to the number of consecutive rows to concatenate; is assumed to have been validated using `_validate_init_params`.
+        :return: NumPy array of shape (n - r + 1, r * d) containing the concatenated rows.
+        """
         n, d = x.shape
         if n < r:
             raise ValueError("the number of rows in x must be at least r")
@@ -97,15 +112,10 @@ class Preprocessor(ABC):
         """
         Flag values in an array that are at or above a threshold.
 
-        :param y: NumPy array of shape (n,).
-        :param y_threshold: Float giving the threshold; is assumed to have been validated using `_validate`.
+        :param y: NumPy array of shape (n,); is assumed to have been validated using `_validate_arrays`.
+        :param y_threshold: Float giving the threshold; is assumed to have been validated using `_validate_init_params`.
         :return: NumPy array of shape (n,) containing the flags.
         """
-        if not isinstance(y, np.ndarray):
-            raise TypeError("y must be a NumPy array")
-        if y.ndim != 1:
-            raise TypeError("y must be 1D")
-
         return y >= y_threshold
 
 class IdentityPreprocessor(Preprocessor):
@@ -120,6 +130,7 @@ class IdentityPreprocessor(Preprocessor):
             self.y_threshold = np.quantile(y, self.p, method="inverted_cdf")
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        Preprocessor._validate_arrays(x, y)
         return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold)
 
 class StandardizePreprocessor(Preprocessor):
@@ -130,11 +141,13 @@ class StandardizePreprocessor(Preprocessor):
         self.p = p
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        Preprocessor._validate_arrays(x, y)
         if self.y_threshold is None:
             self.y_threshold = np.quantile(y, self.p, method="inverted_cdf")
         self.means = np.mean(x, axis=0)
         self.sds = np.std(x, axis=0)
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        Preprocessor._validate_arrays(x, y)
         x = (x - self.means) / self.sds
         return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold)
