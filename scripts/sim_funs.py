@@ -201,6 +201,17 @@ def simulate2(num_runs, max_workers, dists: Dict, beta: numpy.ndarray, sizes: Di
         futures = [executor.submit(do_1_run, dists, beta, sizes, quantiles, mods, metrics_, child_rngs[i]) for i in range(num_runs)]
         for future in as_completed(futures):
             summaries.append(future.result())
+            print(summaries.__len__())
+    return pandas.concat(summaries).reset_index(drop=True)
+
+
+def simulate3(num_runs, max_workers, dists: Dict, beta: numpy.ndarray, sizes: Dict, quantiles: Dict, mods, metrics_, rng) -> pandas.DataFrame:
+    child_rngs = rng.spawn(num_runs)
+    summaries = []
+    for i in range(num_runs):
+        summary = do_1_run(dists, beta, sizes, quantiles, mods, metrics_, child_rngs[i])
+        summaries.append(summary)
+        print(summaries.__len__())
     return pandas.concat(summaries).reset_index(drop=True)
 
 
