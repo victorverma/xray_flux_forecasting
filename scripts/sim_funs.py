@@ -16,8 +16,27 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import get_context
 from plotnine import *
 from scipy.integrate import quad
+from scipy.stats import multivariate_normal
 from scipy.stats._distn_infrastructure import rv_continuous_frozen
 from typing import Dict, Tuple
+
+
+class mvnorm:
+    def __init__(self, mean=[0], cov_factor=None, seed=None):
+        self.mean = numpy.asarray(mean)
+        self.cov_factor = numpy.asarray(cov_factor)
+        self.cov = cov_factor @ cov_factor.T
+        self.seed = seed
+        if seed is None:
+            self.rng = numpy.random.default_rng()
+        elif isinstance(seed, (int, numpy.random.RandomState, numpy.random.Generator)):
+            self.rng = numpy.random.default_rng(seed)
+        else:
+            raise ValueError("seed must be None, an int, or a RandomState/Generator instance.")
+
+    def rvs(self, size=1, random_state=None):
+        r = self.cov_factor.shape[1]
+        return multivariate_normal.rvs(mean=numpy.zeros(r), size=size, random_state=random_state) @ self.cov_factor.T + self.mean
 
 
 def calc_opt_precision(x_sd: float, epsilon_sd: float, p: float) -> float:
@@ -181,10 +200,12 @@ def simulate(num_runs, max_workers, dists: Dict, beta: numpy.ndarray, sizes: Dic
         with e_all.sync_imports():
             import numpy
             import pandas
+            from scipy.stats import multivariate_normal
             from scipy.stats._distn_infrastructure import rv_continuous_frozen
             from typing import Dict, Tuple
         e_all.push({
-            "make_dataset": make_dataset, "do_1_run": do_1_run, "dists": dists, "beta": beta, "sizes": sizes, "quantiles": quantiles, "mods": mods, "metrics_": metrics_,
+            "make_dataset": make_dataset, "do_1_run": do_1_run,
+            "dists": dists, "beta": beta, "sizes": sizes, "quantiles": quantiles, "mods": mods, "metrics_": metrics_,
             "child_rngs": child_rngs
         })
         ar = e_all.map_sync(lambda i: do_1_run(dists, beta, sizes, quantiles, mods, metrics_, child_rngs[i]).assign(run_num=i), range(num_runs))
