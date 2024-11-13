@@ -20,6 +20,11 @@ class event_rate(Metric):
         tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
         return (tp + fn) / (tp + fn + fp + tn)
 
+class alarm_rate(Metric):
+     def evaluate(self, y_test: np.ndarray, y_pred: np.ndarray) -> float:
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+        return (tp + fp) / (tp + fn + fp + tn)
+
 class tpr(Metric):
      def evaluate(self, y_test: np.ndarray, y_pred: np.ndarray) -> float:
         _, _, fn, tp = confusion_matrix(y_test, y_pred).ravel()
