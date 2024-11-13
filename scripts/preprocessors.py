@@ -131,7 +131,7 @@ class IdentityPreprocessor(Preprocessor):
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         Preprocessor._validate_arrays(x, y)
-        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold)
+        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[(self.r - 1):], self.y_threshold)
 
 class StandardizePreprocessor(Preprocessor):
     def __init__(self, r: int = 1, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
@@ -150,4 +150,4 @@ class StandardizePreprocessor(Preprocessor):
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         Preprocessor._validate_arrays(x, y)
         x = (x - self.means) / self.sds
-        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[self.r:], self.y_threshold)
+        return Preprocessor._embed(x, self.r), Preprocessor._binarize(y[(self.r - 1):], self.y_threshold)
