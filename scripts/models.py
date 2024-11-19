@@ -50,3 +50,19 @@ class KNN2Model(Model):
     def predict(self, x: np.ndarray) -> np.ndarray:
         preds = self.density_ratio_estimator.predict(x)
         return preds >= self.pred_threshold
+
+class RuLSIFModel(Model):
+    def __init__(self, p: float, sigma_range="auto", lambda_range="auto", kernel_num=100, verbose=True) -> None:
+        self.density_ratio_estimator = dre.RuLSIFDensityRatioEstimator(sigma_range, lambda_range, kernel_num, verbose)
+        self.p = p
+
+    def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        x_numer = x[y]
+        x_denom = x[~y]
+        self.density_ratio_estimator.fit(x_numer, x_denom)
+        ratio_hat = self.density_ratio_estimator.predict(x)
+        self.pred_threshold = np.quantile(ratio_hat, self.p, method="inverted_cdf")
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        ratio_hat = self.density_ratio_estimator.predict(x)
+        return ratio_hat >= self.pred_threshold
