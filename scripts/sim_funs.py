@@ -249,3 +249,8 @@ def plot_results(results: pandas.DataFrame, opt_precision: float = None) -> ggpl
         plot = plot + geom_hline(yintercept=opt_precision, linetype="dashed")
     return plot
 
+
+def calc_epsilon_sd(a_, beta, snr):
+    signal_var = beta.T @ a_ @ a_.T @ beta
+    return (signal_var * (1 / snr - 1)) ** 0.5
+
