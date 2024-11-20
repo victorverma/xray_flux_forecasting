@@ -9,6 +9,7 @@ import numpy as np
 from density_ratio_estimators import *
 from model import Model
 from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
 from typing import Optional
 
 class KNNModel(Model):
@@ -52,6 +53,21 @@ class KNN2Model(Model):
     def predict(self, x: np.ndarray) -> np.ndarray:
         preds = self.density_ratio_estimator.predict(x)
         return preds >= self.pred_threshold
+
+class KNN3Model(Model):
+    def __init__(self, k: int, label: str) -> None:
+        self.classifier = KNeighborsClassifier(k)
+        self._label = label
+
+    @property
+    def label(self) -> str:
+        return self._label
+
+    def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        self.classifier.fit(x, y)
+
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        return self.classifier.predict(x)
 
 class RuLSIFModel(Model):
     def __init__(self, p: float, label: str, sigma_range="auto", lambda_range="auto", kernel_num=100, verbose=True) -> None:
