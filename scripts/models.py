@@ -8,7 +8,8 @@ sys.path.append(tscv_dir)
 import numpy as np
 from density_ratio_estimators import *
 from model import Model
-from sklearn import linear_model
+from sklearn.linear_model import LogisticRegression
+from typing import Optional
 
 class KNNModel(Model):
     def __init__(self, k_numer: int, k_denom: int, p: float, label: str) -> None:
