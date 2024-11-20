@@ -5,6 +5,7 @@ tscv_dir = os.path.abspath(os.path.join(parent_dir, "tscv/src/tscv/"))
 sys.path.append(tscv_dir)
 import numpy as np
 from preprocessor import Preprocessor
+from sklearn.preprocessing import QuantileTransformer
 from typing import Optional, Tuple
 
 class IdentityPreprocessor(Preprocessor):
@@ -54,4 +55,30 @@ class StandardizePreprocessor(Preprocessor):
 
     def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         x = (x - self.means) / self.sds
+        return Preprocessor._embed(x, self.r), self._binarize(y[(self.r - 1):], self.y_threshold)
+
+class QuantilePreprocessor(Preprocessor):
+    def __init__(self, r: int = 1, y_threshold: Optional[float] = None, p: Optional[float] = None) -> None:
+        self.r = r
+        self.y_threshold = y_threshold
+        self.p = p
+        self.transformer = QuantileTransformer(output_distribution="normal", random_state=0, copy=True)
+
+    def _binarize(self, y: np.ndarray, y_threshold: float) -> np.ndarray:
+        """
+        Flag values in an array that are at or above a threshold.
+
+        :param y: NumPy array of shape (n,); is assumed to have been validated using `_validate_arrays`.
+        :param y_threshold: Float giving the threshold; is assumed to have been validated using `_validate_init_params`.
+        :return: NumPy array of shape (n,) containing the flags.
+        """
+        return y >= y_threshold
+
+    def fit(self, x: np.ndarray, y: np.ndarray) -> None:
+        if self.y_threshold is None:
+            self.y_threshold = np.quantile(y, self.p, method="inverted_cdf")
+        self.transformer.fit(x)
+
+    def transform(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        x = self.transformer.transform(x)
         return Preprocessor._embed(x, self.r), self._binarize(y[(self.r - 1):], self.y_threshold)
