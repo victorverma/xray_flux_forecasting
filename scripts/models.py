@@ -1,28 +1,23 @@
-from abc import ABC, abstractmethod
 import os
 import sys
-import numpy as np
 parent_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
 density_ratio_estimation_dir = os.path.abspath(os.path.join(parent_dir, "density_ratio_estimation/scripts/"))
+tscv_dir = os.path.abspath(os.path.join(parent_dir, "tscv/src/tscv/"))
 sys.path.append(density_ratio_estimation_dir)
-import density_ratio_estimators as dre
-
-class Model(ABC):
-    """Abstract base class for models."""
-    @abstractmethod
-    def fit(self, x: np.ndarray, y: np.ndarray) -> None:
-        """Fit the model to the data."""
-        pass
-
-    @abstractmethod
-    def predict(self, x: np.ndarray) -> np.ndarray:
-        """Predict using the model."""
-        pass
+sys.path.append(tscv_dir)
+import numpy as np
+from density_ratio_estimators import *
+from model import Model
 
 class KNNModel(Model):
-    def __init__(self, k_numer: int, k_denom: int, p: float) -> None:
-        self.density_ratio_estimator = dre.KNNDensityRatioEstimator(k_numer, k_denom)
+    def __init__(self, k_numer: int, k_denom: int, p: float, label: str) -> None:
+        self.density_ratio_estimator = KNNDensityRatioEstimator(k_numer, k_denom)
         self.p = p
+        self._label = label
+
+    @property
+    def label(self) -> str:
+        return self._label
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
         x_numer = x[y]
@@ -36,9 +31,14 @@ class KNNModel(Model):
         return ratio_hat >= self.pred_threshold
 
 class KNN2Model(Model):
-    def __init__(self, k: int, p: float) -> None:
-        self.density_ratio_estimator = dre.KNN2DensityRatioEstimator(k)
+    def __init__(self, k: int, p: float, label: str) -> None:
+        self.density_ratio_estimator = KNN2DensityRatioEstimator(k)
         self.p = p
+        self._label = label
+
+    @property
+    def label(self) -> str:
+        return self._label
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
         x_numer = x[y]
@@ -52,9 +52,14 @@ class KNN2Model(Model):
         return preds >= self.pred_threshold
 
 class RuLSIFModel(Model):
-    def __init__(self, p: float, sigma_range="auto", lambda_range="auto", kernel_num=100, verbose=True) -> None:
-        self.density_ratio_estimator = dre.RuLSIFDensityRatioEstimator(sigma_range, lambda_range, kernel_num, verbose)
+    def __init__(self, p: float, label: str, sigma_range="auto", lambda_range="auto", kernel_num=100, verbose=True) -> None:
+        self.density_ratio_estimator = RuLSIFDensityRatioEstimator(sigma_range, lambda_range, kernel_num, verbose)
         self.p = p
+        self._label = label
+
+    @property
+    def label(self) -> str:
+        return self._label
 
     def fit(self, x: np.ndarray, y: np.ndarray) -> None:
         x_numer = x[y]
