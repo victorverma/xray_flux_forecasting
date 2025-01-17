@@ -69,11 +69,15 @@ def compute_maxes(t):
     max_flux = flux_data.loc[is_in_window, "flux"].max()
 
     is_in_window = (flare_data["peak time"] >= window_start) & (flare_data["peak time"] <= window_end)
-    flare_classes = flare_data.loc[is_in_window, "flare_class"]
-    peak_intensities = flare_data.loc[is_in_window, "peak_intensity"]
-    i = peak_intensities.idxmax()
-    max_flare_class = flare_classes[i]
-    max_peak_intensity = peak_intensities[i]
+    if is_in_window.any():
+        flare_classes = flare_data.loc[is_in_window, "flare_class"]
+        peak_intensities = flare_data.loc[is_in_window, "peak_intensity"]
+        i = peak_intensities.idxmax()
+        max_flare_class = flare_classes[i]
+        max_peak_intensity = peak_intensities[i]
+    else:
+        max_flare_class = pd.NA
+        max_peak_intensity = np.nan
 
     return max_flux, max_flare_class, max_peak_intensity
 
