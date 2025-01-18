@@ -62,7 +62,6 @@ combined_data = pd.merge(harp_data, flux_data[["time", "flux"]], how="inner", le
 window_ends = combined_data["T_REC"] + pd.Timedelta(hours=23, minutes=59)
 should_keep = (window_ends <= flux_data["time"].iloc[-1]) & (window_ends <= flare_data["peak time"].iloc[-1])
 combined_data = combined_data[should_keep]
-combined_data = combined_data[1460:2460]
 
 def compute_maxes(t: datetime) -> tuple[float, str, float]:
     window_start = t
