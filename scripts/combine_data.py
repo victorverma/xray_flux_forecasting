@@ -58,7 +58,8 @@ flare_data["flare_class"] = flare_data["peak_intensity"].map(get_flare_class)
 ################################################################################
 
 combined_data = pd.merge(harp_data, flux_data[["time", "flux"]], how="inner", left_on="T_REC", right_on="time").drop(columns="time")
-should_keep = combined_data["T_REC"] + pd.Timedelta(hours=23, minutes=59) <= flux_data["time"].iloc[-1]
+window_ends = combined_data["T_REC"] + pd.Timedelta(hours=23, minutes=59)
+should_keep = (window_ends <= flux_data["time"].iloc[-1]) & (window_ends <= flare_data["peak time"].iloc[-1])
 combined_data = combined_data[should_keep]
 
 def compute_maxes(t):
@@ -87,6 +88,9 @@ with ProcessPoolExecutor(max_workers=max_workers, mp_context=get_context("fork")
 max_fluxes, max_flare_classes, max_peak_intensities = zip(*max_tuples)
 combined_data["max_flux_next_24h"] = max_fluxes
 combined_data["max_flare_class_next_24h"] = max_flare_classes
+# When workers return results, pd.NA is changed to None during serialization. The string data type is a nullable Pandas data type; the type
+# change below causes None to become pd.NA. Also, the type change will prevent pd.NA from being changed to None in the parquet file.
+combined_data["max_flare_class_next_24h"] = combined_data["max_flare_class_next_24h"].astype("string")
 combined_data["max_peak_intensity_next_24h"] = max_peak_intensities
 
 combined_data.to_parquet("../combined_data/combined_data.parquet")
