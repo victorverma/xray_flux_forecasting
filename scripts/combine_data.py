@@ -26,33 +26,7 @@ chunksize = cmd_args.chunksize
 
 harp_data = pd.read_parquet("../harp_data/data/processed/aggregated_high-qual_near-center-70.parquet")
 flux_data = pd.read_parquet("../xray_fluxes/data/processed/1m_data.parquet")
-flare_data = pd.read_csv("../flare_data/sci_20100101_20240721.csv")
-
-################################################################################
-# Fix the issues in the flare list
-################################################################################
-
-flare_data["start time"] = pd.to_datetime(flare_data["start time"], errors="coerce", format="%Y/%m/%d %H:%M", utc=True)
-flare_data["end time"] = pd.to_datetime(flare_data["end time"], errors="coerce", format="%Y/%m/%d %H:%M", utc=True)
-flare_data["peak time"] = pd.to_datetime(flare_data["peak time"], errors="coerce", format="%Y/%m/%d %H:%M", utc=True)
-
-def get_peak_intensity(fl_class: str) -> float:
-    flare_class = fl_class[0]
-    multiplier = float(fl_class[1:])
-    powers = {"A": 1e-8, "B": 1e-7, "C": 1e-6, "M": 1e-5, "X": 1e-4}
-    return multiplier * powers[flare_class]
-
-flare_data["peak_intensity"] = flare_data["fl_class"].map(get_peak_intensity)
-
-def get_flare_class(peak_intensity: float) -> str:
-    thresholds = [10 ** i for i in range(-4, -9, -1)]
-    flare_classes = ["X", "M", "C", "B", "A"]
-    for threshold, flare_class in zip(thresholds, flare_classes):
-        if peak_intensity >= threshold:
-            return flare_class
-    return pd.NA
-
-flare_data["flare_class"] = flare_data["peak_intensity"].map(get_flare_class)
+flare_data = pd.read_parquet("../flare_data/flare_data.parquet")
 
 ################################################################################
 # Combine all the data
