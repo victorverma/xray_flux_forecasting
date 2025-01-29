@@ -74,7 +74,7 @@ def process_block(
         block_start_time: datetime,
         block_end_time: datetime,
         min_num_recs: int,
-        return_partial_cors: bool = False
+        return_partial_cors: bool
     ) -> tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
     """
     Estimate precision matrices using the non-flare and flare subsets of a given block of data.
@@ -142,7 +142,7 @@ def plot_precision_mat(precision_mat: pd.DataFrame, fix_precision_lims: bool = F
         )
     return plot
 
-def make_and_save_plots(precision_mats: list[Optional[pd.DataFrame]], filename: str, fix_precision_lims: bool = False) -> None:
+def make_and_save_plots(precision_mats: list[Optional[pd.DataFrame]], filename: str, fix_precision_lims: bool) -> None:
     precision_mat_plots = [
         plot_precision_mat(precision_mat, fix_precision_lims=fix_precision_lims) for precision_mat in precision_mats if precision_mat is not None
     ]
