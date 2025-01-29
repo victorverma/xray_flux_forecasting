@@ -73,8 +73,6 @@ def help_process_block(
 def process_block(
         block_start_time: datetime,
         block_end_time: datetime,
-        predictors_str: str,
-        flare_classes_str: str,
         min_num_recs: int,
         return_partial_cors: bool = False
     ) -> tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
@@ -83,27 +81,17 @@ def process_block(
 
     :param block_start_time: Datetime giving the start of the block.
     :param block_end_time: Datetime giving the end of the block.
-    :param predictors_str:
-    :param flare_classes_str:
     :param min_num_recs: Integer giving the minimum number of records needed for precision matrix estimation.
     :param return_partial_cors: Boolean indicating whether to scale the precision matrix entries to be between -1 and 1.
     :return: A tuple of two Pandas DataFrames that represent the estimated precision matrices for the non-flare and flare subsets.
     """
-    predictor_cols_mapping = {"sharp_params": sharp_params, "areas_counts": areas_counts, "all_predictors": all_predictors}
-    predictor_cols = predictor_cols_mapping[predictors_str]
-    na_col_mapping = {
-        "sharp_params": "are_any_sharp_params_na", "areas_counts": "are_any_areas_counts_na", "all_predictors": "are_any_predictors_na"
-    }
-    na_col = na_col_mapping[predictors_str]
-    flare_classes_col_mapping = {"a_plus": "was_during_flare", "c_plus": "was_during_c_plus_flare", "m_plus": "was_during_m_plus_flare"}
-    flare_classes_col = flare_classes_col_mapping[flare_classes_str]
     block = harp_flare_data.loc[
         (harp_flare_data["T_REC"] >= block_start_time) & (harp_flare_data["T_REC"] <= block_end_time),
-        predictor_cols + [na_col, flare_classes_col]
+        predictor_cols + ["are_any_predictors_na", "was_during_flare"]
     ].copy()
-    no_flare_mask = ~block[na_col] & ~block[flare_classes_col]
-    flare_mask = ~block[na_col] & block[flare_classes_col]
-    block.drop(columns=[na_col, flare_classes_col], inplace=True)
+    no_flare_mask = ~block["are_any_predictors_na"] & ~block["was_during_flare"]
+    flare_mask = ~block["are_any_predictors_na"] & block["was_during_flare"]
+    block.drop(columns=["are_any_predictors_na", "was_during_flare"], inplace=True)
     
     no_flare_precision_mat = help_process_block(block_start_time, block_end_time, min_num_recs, return_partial_cors, block, no_flare_mask)
     flare_precision_mat = help_process_block(block_start_time, block_end_time, min_num_recs, return_partial_cors, block, flare_mask)
@@ -112,7 +100,7 @@ def process_block(
 
 def wrap_process_block(block_times: tuple[datetime, datetime]) -> tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
     block_start_time, block_end_time = block_times
-    return process_block(block_start_time, block_end_time, predictors_str, flare_classes_str, min_num_recs, return_partial_cors)
+    return process_block(block_start_time, block_end_time, min_num_recs, return_partial_cors)
 
 def turn_attrs_into_cols(precision_mat: pd.DataFrame) -> pd.DataFrame:
     precision_mat = precision_mat.copy()
@@ -204,12 +192,16 @@ if __name__ == "__main__":
     areas_counts = ["NPIX", "SIZE", "AREA", "NACR", "SIZE_ACR", "AREA_ACR"] # Patch areas and pixel counts
     all_predictors = sharp_params + areas_counts
 
-    harp_flare_data["are_any_sharp_params_na"] = harp_flare_data[sharp_params].isna().any(axis=1)
-    harp_flare_data["are_any_areas_counts_na"] = harp_flare_data[areas_counts].isna().any(axis=1)
-    harp_flare_data["are_any_predictors_na"] = harp_flare_data[all_predictors].isna().any(axis=1)
-    harp_flare_data["was_during_flare"] = ~harp_flare_data["flare_class"].isna()
-    harp_flare_data["was_during_c_plus_flare"] = harp_flare_data["flare_class"].isin(["C", "M", "X"])
-    harp_flare_data["was_during_m_plus_flare"] = harp_flare_data["flare_class"].isin(["M", "X"])
+    predictor_cols_mapping = {"sharp_params": sharp_params, "areas_counts": areas_counts, "all_predictors": all_predictors}
+    predictor_cols = predictor_cols_mapping[predictors_str]
+
+    harp_flare_data["are_any_predictors_na"] = harp_flare_data[predictor_cols].isna().any(axis=1)
+
+    flare_classes_mapping = {"a_plus": ["A", "B", "C", "M", "X"], "b_plus": ["B", "C", "M", "X"], "c_plus": ["C", "M", "X"], "m_plus": ["M", "X"]}
+    flare_classes = flare_classes_mapping[flare_classes_str]
+    harp_flare_data["was_during_flare"] = harp_flare_data["flare_class"].isin(flare_classes)
+
+    harp_flare_data = harp_flare_data[["HARPNUM", "T_REC"] + predictor_cols + ["are_any_predictors_na", "was_during_flare"]]
 
     ################################################################################
     # Compute the block start and end times
