@@ -112,7 +112,11 @@ def turn_attrs_into_cols(precision_mat: pd.DataFrame) -> pd.DataFrame:
 def save_precision_mats(precision_mats: list[Optional[pd.DataFrame]], path: str) -> None:
     precision_mats = [turn_attrs_into_cols(precision_mat) for precision_mat in precision_mats if precision_mat is not None]
     if precision_mats:
-        pd.concat(precision_mats).to_parquet(path)
+        combined_precision_mats = pd.concat(precision_mats)
+        # When len(precision_mats) == 1, combined_precision_mats == precision_mats[0], with attributes being preserved. However, Timestamp is not
+        # JSON serializable, so we remove the attributes
+        combined_precision_mats.attrs = {}
+        combined_precision_mats.to_parquet(path)
     else:
         print(f"{os.path.basename(path)} couldn't be created as no precision matrices could be estimated.")
 
@@ -160,8 +164,8 @@ if __name__ == "__main__":
     ################################################################################
 
     parser = argparse.ArgumentParser(description="Estimate predictor vector precision matrices using different blocks of data")
-    parser.add_argument("--block_size", type=int, required=True, help="Block size")
-    parser.add_argument("--stride", type=int, required=True, help="Stride length")
+    parser.add_argument("--block_size", type=int, help="Block size (if set, also set --stride)")
+    parser.add_argument("--stride", type=int, help="Stride length (if set, also set --block_size)")
     parser.add_argument("--predictors_str", type=str, required=True, help="Name of set of predictor columns to use")
     parser.add_argument("--flare_classes_str", type=str, required=True, help="Flare classes that define flaring status")
     parser.add_argument("--min_num_recs", type=int, required=True, help="Minimum number of records for use of the graphical lasso")
@@ -170,8 +174,12 @@ if __name__ == "__main__":
     parser.add_argument("--chunksize", type=int, default=1, help="Chunk size for ProcessPoolExecutor instance")
 
     cmd_args = parser.parse_args()
+
     block_size = cmd_args.block_size
     stride = cmd_args.stride
+    if (block_size is None) != (stride is None):
+        parser.error("Either set both --block_size and --stride or set neither.")
+
     predictors_str = cmd_args.predictors_str
     flare_classes_str = cmd_args.flare_classes_str
     min_num_recs = cmd_args.min_num_recs
@@ -208,12 +216,17 @@ if __name__ == "__main__":
     ################################################################################
 
     times = sorted(harp_flare_data["T_REC"].unique())
-    if len(times) < block_size:
-        block_start_times = []
-        block_end_times = []
+    num_times = len(times)
+    if block_size is None:
+        block_start_times = [times[0]]
+        block_end_times = [times[-1]]
+    elif block_size < num_times:
+        block_start_times = [times[i] for i in range(0, num_times - block_size + 1, stride)]
+        block_end_times = [times[i + block_size - 1] for i in range(0, num_times - block_size + 1, stride)]
     else:
-        block_start_times = [times[i] for i in range(0, len(times), stride)]
-        block_end_times = [times[min(i + block_size - 1, len(times) - 1)] for i in range(0, len(times), stride)]
+        warnings.warn(f"block_size ({block_size}) is greater than or equal to the number of distinct times ({num_times}).", UserWarning)
+        block_start_times = [times[0]]
+        block_end_times = [times[-1]]
 
     ################################################################################
     # Estimate precision matrices
@@ -228,8 +241,10 @@ if __name__ == "__main__":
     # Save the results
     ################################################################################
 
+    block_size = f"{block_size}_" if block_size is not None else ""
+    stride = f"{stride}_" if stride is not None else ""
     return_partial_cors = "_partial_cors" if return_partial_cors else ""
-    dir_name = f"{block_size}_{stride}_{predictors_str}_{flare_classes_str}_{min_num_recs}{return_partial_cors}"
+    dir_name = f"{block_size}{stride}{predictors_str}_{flare_classes_str}_{min_num_recs}{return_partial_cors}"
     if os.path.exists(dir_name):
         shutil.rmtree(dir_name)
     os.mkdir(dir_name)
