@@ -109,7 +109,7 @@ def turn_attrs_into_cols(precision_mat: pd.DataFrame) -> pd.DataFrame:
         precision_mat.insert(j, attr, val)
     return precision_mat
 
-def save_precision_mats(precision_mats: list[Optional[pd.DataFrame]], path: str):
+def save_precision_mats(precision_mats: list[Optional[pd.DataFrame]], path: str) -> None:
     precision_mats = [turn_attrs_into_cols(precision_mat) for precision_mat in precision_mats if precision_mat is not None]
     if precision_mats:
         pd.concat(precision_mats).to_parquet(path)
@@ -142,7 +142,7 @@ def plot_precision_mat(precision_mat: pd.DataFrame, fix_precision_lims: bool = F
         )
     return plot
 
-def make_and_save_plots(precision_mats: list[Optional[pd.DataFrame]], filename: str, fix_precision_lims: bool = False):
+def make_and_save_plots(precision_mats: list[Optional[pd.DataFrame]], filename: str, fix_precision_lims: bool = False) -> None:
     precision_mat_plots = [
         plot_precision_mat(precision_mat, fix_precision_lims=fix_precision_lims) for precision_mat in precision_mats if precision_mat is not None
     ]
