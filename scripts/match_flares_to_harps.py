@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+import os
 import pandas as pd
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -13,11 +14,11 @@ script_start_time = time.time()
 ################################################################################
 
 parser = argparse.ArgumentParser(description="For each HARP record, find any matching flares")
-parser.add_argument("--use_no_nas_harp_data", action="store_true", help="Whether to use imputed HARP data (default: False)")
+parser.add_argument("--filepath", type=str, help="Path to the file with the HARP data")
 parser.add_argument("--max_workers", type=int, default=1, help="Maximum number of worker processes to use")
 parser.add_argument("--chunksize", type=int, default=1, help="Chunk size for ProcessPoolExecutor instance")
 cmd_args = parser.parse_args()
-use_no_nas_harp_data = cmd_args.use_no_nas_harp_data
+filepath = cmd_args.filepath
 max_workers = cmd_args.max_workers
 chunksize = cmd_args.chunksize
 
@@ -25,8 +26,7 @@ chunksize = cmd_args.chunksize
 # Load the data
 ################################################################################
 
-prefix = "no_nas_" if use_no_nas_harp_data else ""
-harp_data = pd.read_parquet(f"../harp_data/data/processed/{prefix}hmi_sharp_cea_720s.parquet")
+harp_data = pd.read_parquet(f"{filepath}")
 flare_data = pd.read_parquet("../flare_data/flare_data.parquet")
 
 ################################################################################
@@ -64,7 +64,8 @@ with ProcessPoolExecutor(max_workers=max_workers, mp_context=get_context("fork")
     one_harp_dfs = list(executor.map(match_flares_to_harp, one_harp_dfs, chunksize=chunksize))
 harp_flare_data = pd.concat(one_harp_dfs, ignore_index=True)
 
-harp_flare_data.to_parquet(f"../combined_data/{prefix}harp_flare_data.parquet")
+filename = os.path.splitext(os.path.basename(filepath))[0]
+harp_flare_data.to_parquet(f"../combined_data/{filename}_flares.parquet")
 
 script_elapsed_time = time.time() - script_start_time
 print(f"\rMatching flares to HARPs ({int(script_elapsed_time)}s)", flush=True)
