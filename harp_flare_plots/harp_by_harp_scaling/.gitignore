@@ -1,0 +1,3 @@
+# Keep big PDFs out of the repo
+*
+!.gitignore
