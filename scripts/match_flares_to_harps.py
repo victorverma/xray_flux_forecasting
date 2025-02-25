@@ -27,7 +27,7 @@ chunksize = cmd_args.chunksize
 ################################################################################
 
 harp_data = pd.read_parquet(f"{filepath}")
-flare_data = pd.read_parquet("../flare_data/flare_data.parquet")
+flare_data = pd.read_parquet("../flare_data/processed/flare_data.parquet")
 
 ################################################################################
 # Match flares to HARPs
