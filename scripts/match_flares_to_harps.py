@@ -37,7 +37,7 @@ flare_data = flare_data[["noaa_ar_5min", "start time", "peak time", "end time", 
 # For many flares, `noaa_ar_5min` is missing; these flares should be deleted before matching flares to HARPs because Pandas seems to match
 # records if their join keys are both missing
 flare_data = flare_data[~flare_data["noaa_ar_5min"].isna()]
-# Many flares are missing end times; see notebooks/process_flare_data.ipynb for details
+# Many flares are missing end times; see flare_data/process_flare_data.ipynb for details
 flare_data = flare_data[~flare_data["end time"].isna()]
 
 max_times = harp_data.groupby("HARPNUM")["T_REC"].max().reset_index(name="max_time")
