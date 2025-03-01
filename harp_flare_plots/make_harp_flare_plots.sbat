@@ -12,4 +12,4 @@
 echo "Running on $SLURM_JOB_NODELIST"
 echo "Running in $(pwd)"
 
-conda run -p ../env/ python make_harp_flare_plots.py
+conda run -p ../env/ --live-stream python make_harp_flare_plots.py
