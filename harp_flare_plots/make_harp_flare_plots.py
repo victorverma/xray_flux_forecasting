@@ -16,16 +16,14 @@ harp_flare_data = harp_flare_data[
 # several predictors are strongly right-skewed. We log-transform those
 # predictors. If we didn't, then their min-max-scaled values would largely be
 # close to zero, and it would be hard to discern any patterns in those values.
-harp_flare_data["TOTUSJH"] = np.log(harp_flare_data["TOTUSJH"] + 1)
-harp_flare_data["TOTUSJZ"] = np.log(harp_flare_data["TOTUSJZ"] + 1)
-harp_flare_data["USFLUX"] = np.log(harp_flare_data["USFLUX"] + 1)
-harp_flare_data["TOTPOT"] = np.log(harp_flare_data["TOTPOT"] + 1)
-harp_flare_data["ABSNJZH"] = np.log(harp_flare_data["ABSNJZH"] + 1)
-harp_flare_data["SAVNCPP"] = np.log(harp_flare_data["SAVNCPP"] + 1)
-harp_flare_data["NACR"] = np.log(harp_flare_data["NACR"] + 1)
-harp_flare_data["SIZE_ACR"] = np.log(harp_flare_data["SIZE_ACR"] + 1)
-harp_flare_data["SIZE"] = np.log(harp_flare_data["SIZE"] + 1)
-harp_flare_data["NPIX"] = np.log(harp_flare_data["NPIX"] + 1)
+right_skewed_predictors = [
+    "TOTUSJH", "TOTUSJZ", "USFLUX", "TOTPOT", "ABSNJZH", "SAVNCPP", "NACR",
+    "SIZE_ACR", "SIZE", "NPIX"
+]
+harp_flare_data[right_skewed_predictors] = (
+    harp_flare_data[right_skewed_predictors]
+    .apply(lambda x: np.log1p(x - x.min()))
+)
 
 minmax_data = harp_flare_data.copy()
 minmax_data[all_predictors] = minmax_scale(minmax_data[all_predictors])
